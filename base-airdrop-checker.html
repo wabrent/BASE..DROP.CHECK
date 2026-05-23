@@ -426,7 +426,7 @@ async function startScan() {
 
         // Fallback to Nitter RSS if API failed or returned 0
         if (!apiSuccess) {
-          const r = await fetch(getProxyUrl("https://nitter.net/" + twitterHandle + "/rss"));
+          const r = await fetch("https://api.allorigins.win/raw?url=" + encodeURIComponent("https://nitter.net/" + twitterHandle + "/rss"));
           const html = await r.text();
           const tweetMatches = html.match(/<item>/g);
           twitterData.tweets = tweetMatches ? tweetMatches.length : 0;
