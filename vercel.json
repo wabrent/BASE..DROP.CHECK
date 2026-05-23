@@ -1,7 +1,6 @@
 {
   "version": 2,
   "rewrites": [
-    { "source": "/api/proxy", "destination": "/api/proxy" },
-    { "source": "/(.*)", "destination": "/base-airdrop-checker.html" }
+    { "source": "/((?!api/).*)", "destination": "/base-airdrop-checker.html" }
   ]
 }
