@@ -190,7 +190,7 @@ footer { border-top: 1px solid var(--border); padding: 1.5rem 2rem; max-width: 9
         <input class="addr-input" id="twitterInput" type="text" placeholder="@handle" autocomplete="off" spellcheck="false" style="flex:none;width:220px;" />
       </div>
       <div class="input-row" style="margin-top:8px;">
-        <input class="addr-input" id="twitterToken" type="password" placeholder="Twitter Bearer Token (optional)" autocomplete="off" spellcheck="false" style="font-size:11px;" />
+        <input class="addr-input" id="twitterToken" type="password" placeholder="Twitter Bearer Token (optional)" autocomplete="off" spellcheck="false" style="font-size:11px;" value="AAAAAAAAAAAAAAAAAAAAAIAb9wEAAAAAoenH6%2BJeVPn7qfgQnX9NIdPsElI%3DfAVRHcwcLvflP97GmRZSoKyuJjJ4HLKrG7nSgYTFuTJtHQ4Wan" />
       </div>
       <div style="font-size:9px;color:var(--muted);margin-top:4px;">Add Bearer Token for full tweet history. Without token: recent posts only via RSS.</div>
     </div>
@@ -411,14 +411,16 @@ async function startScan() {
       setLoading("Checking X/Twitter activity...", true);
       try {
         if (twitterToken) {
-          // Twitter API v2 — full tweet count
-          const userR = await fetch(getProxyUrl("https://api.twitter.com/2/users/by/username/" + twitterHandle), {
+          // Twitter API v2 — full tweet count via proxy that supports auth
+          const apiUrl = "https://api.twitter.com/2/users/by/username/" + twitterHandle;
+          const userR = await fetch("https://api.allorigins.win/raw?url=" + encodeURIComponent(apiUrl), {
             headers: { "Authorization": "Bearer " + twitterToken }
           });
           const userD = await userR.json();
           const userId = userD.data?.id;
           if (userId) {
-            const twR = await fetch(getProxyUrl("https://api.twitter.com/2/users/" + userId + "?user.fields=public_metrics"), {
+            const metricsUrl = "https://api.twitter.com/2/users/" + userId + "?user.fields=public_metrics";
+            const twR = await fetch("https://api.allorigins.win/raw?url=" + encodeURIComponent(metricsUrl), {
               headers: { "Authorization": "Bearer " + twitterToken }
             });
             const twD = await twR.json();
