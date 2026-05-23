@@ -1,10 +1,7 @@
 {
-  "name": "base-drop-checker",
   "version": 2,
-  "builds": [
-    { "src": "base-airdrop-checker.html", "use": "@vercel/static" }
-  ],
-  "routes": [
-    { "src": "/(.*)", "dest": "/base-airdrop-checker.html" }
+  "rewrites": [
+    { "source": "/api/proxy", "destination": "/api/proxy" },
+    { "source": "/(.*)", "destination": "/base-airdrop-checker.html" }
   ]
 }

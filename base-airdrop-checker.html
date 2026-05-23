@@ -294,7 +294,7 @@ footer { border-top: 1px solid var(--border); padding: 1.5rem 2rem; max-width: 9
 const API_BASE = "https://base.blockscout.com/api";
 
 function getProxyUrl(url) {
-  return "https://api.codetabs.com/v1/proxy?quest=" + encodeURIComponent(url);
+  return "/api/proxy?url=" + encodeURIComponent(url);
 }
 
 async function callAPI(params, retries = 2) {
@@ -409,13 +409,13 @@ async function startScan() {
         // Try Twitter API v2 first (full history)
         let apiSuccess = false;
         try {
-          const userR = await fetch("https://api.allorigins.win/raw?url=" + encodeURIComponent("https://api.twitter.com/2/users/by/username/" + twitterHandle), {
+          const userR = await fetch(getProxyUrl("https://api.twitter.com/2/users/by/username/" + twitterHandle), {
             headers: { "Authorization": "Bearer " + twitterToken }
           });
           const userD = await userR.json();
           const userId = userD.data?.id;
           if (userId) {
-            const twR = await fetch("https://api.allorigins.win/raw?url=" + encodeURIComponent("https://api.twitter.com/2/users/" + userId + "?user.fields=public_metrics"), {
+            const twR = await fetch(getProxyUrl("https://api.twitter.com/2/users/" + userId + "?user.fields=public_metrics"), {
               headers: { "Authorization": "Bearer " + twitterToken }
             });
             const twD = await twR.json();
@@ -424,9 +424,9 @@ async function startScan() {
           }
         } catch(e) {}
 
-        // Fallback to Nitter RSS if API failed or returned 0
+        // Fallback to Nitter RSS
         if (!apiSuccess) {
-          const r = await fetch("https://api.allorigins.win/raw?url=" + encodeURIComponent("https://nitter.net/" + twitterHandle + "/rss"));
+          const r = await fetch(getProxyUrl("https://nitter.net/" + twitterHandle + "/rss"));
           const html = await r.text();
           const tweetMatches = html.match(/<item>/g);
           twitterData.tweets = tweetMatches ? tweetMatches.length : 0;
