@@ -1,6 +1,7 @@
 {
-  "version": 2,
-  "rewrites": [
-    { "source": "/((?!api/).*)", "destination": "/base-airdrop-checker.html" }
+  "routes": [
+    { "handle": "filesystem" },
+    { "src": "/api/(.*)", "dest": "/api/$1" },
+    { "src": "/(.*)", "dest": "/base-airdrop-checker.html" }
   ]
 }
