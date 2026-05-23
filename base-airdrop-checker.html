@@ -194,9 +194,6 @@ footer { border-top: 1px solid var(--border); padding: 1.5rem 2rem; max-width: 9
       <div class="input-row">
         <input class="addr-input" id="twitterInput" type="text" placeholder="@handle" autocomplete="off" spellcheck="false" style="flex:none;width:220px;" />
       </div>
-      <div class="input-row" style="margin-top:8px;">
-        <input class="addr-input" id="twitterToken" type="password" placeholder="Bearer Token (full history) or skip for RSS" autocomplete="off" spellcheck="false" style="font-size:11px;" value="AAAAAAAAAAAAAAAAAAAAAIAb9wEAAAAAoenH6%2BJeVPn7qfgQnX9NIdPsElI%3DfAVRHcwcLvflP97GmRZSoKyuJjJ4HLKrG7nSgYTFuTJtHQ4Wan" />
-      </div>
     </div>
   </div>
 </section>
@@ -404,7 +401,7 @@ async function startScan() {
     // Twitter/X activity
     let twitterData = { tweets: 0, exists: false };
     const twitterRaw = document.getElementById("twitterInput").value.trim();
-    const twitterToken = document.getElementById("twitterToken").value.trim();
+    const twitterToken = "AAAAAAAAAAAAAAAAAAAAAIAb9wEAAAAAoenH6%2BJeVPn7qfgQnX9NIdPsElI%3DfAVRHcwcLvflP97GmRZSoKyuJjJ4HLKrG7nSgYTFuTJtHQ4Wan";
     const twitterHandle = twitterRaw.replace(/^@/, "").replace(/\s/g, "");
     if (twitterHandle) {
       setLoading("Checking X/Twitter activity...", true);
