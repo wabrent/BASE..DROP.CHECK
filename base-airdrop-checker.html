@@ -406,31 +406,32 @@ async function startScan() {
     if (twitterHandle) {
       setLoading("Checking X/Twitter activity...", true);
       try {
-        if (twitterToken) {
-          // Twitter API v2 — full tweet count via proxy that supports auth
-          const apiUrl = "https://api.twitter.com/2/users/by/username/" + twitterHandle;
-          const userR = await fetch("https://api.allorigins.win/raw?url=" + encodeURIComponent(apiUrl), {
+        // Try Twitter API v2 first (full history)
+        let apiSuccess = false;
+        try {
+          const userR = await fetch("https://api.allorigins.win/raw?url=" + encodeURIComponent("https://api.twitter.com/2/users/by/username/" + twitterHandle), {
             headers: { "Authorization": "Bearer " + twitterToken }
           });
           const userD = await userR.json();
           const userId = userD.data?.id;
           if (userId) {
-            const metricsUrl = "https://api.twitter.com/2/users/" + userId + "?user.fields=public_metrics";
-            const twR = await fetch("https://api.allorigins.win/raw?url=" + encodeURIComponent(metricsUrl), {
+            const twR = await fetch("https://api.allorigins.win/raw?url=" + encodeURIComponent("https://api.twitter.com/2/users/" + userId + "?user.fields=public_metrics"), {
               headers: { "Authorization": "Bearer " + twitterToken }
             });
             const twD = await twR.json();
             twitterData.tweets = twD.data?.public_metrics?.tweet_count || 0;
-            twitterData.exists = twitterData.tweets > 0;
+            apiSuccess = twitterData.tweets > 0;
           }
-        } else {
-          // Nitter RSS — recent posts only
+        } catch(e) {}
+
+        // Fallback to Nitter RSS if API failed or returned 0
+        if (!apiSuccess) {
           const r = await fetch(getProxyUrl("https://nitter.net/" + twitterHandle + "/rss"));
           const html = await r.text();
           const tweetMatches = html.match(/<item>/g);
           twitterData.tweets = tweetMatches ? tweetMatches.length : 0;
-          twitterData.exists = twitterData.tweets > 0;
         }
+        twitterData.exists = twitterData.tweets > 0;
       } catch(e){}
     }
 
