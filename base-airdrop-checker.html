@@ -189,6 +189,10 @@ footer { border-top: 1px solid var(--border); padding: 1.5rem 2rem; max-width: 9
       <div class="input-row">
         <input class="addr-input" id="twitterInput" type="text" placeholder="@handle" autocomplete="off" spellcheck="false" style="flex:none;width:220px;" />
       </div>
+      <div class="input-row" style="margin-top:8px;">
+        <input class="addr-input" id="twitterToken" type="password" placeholder="Twitter Bearer Token (optional)" autocomplete="off" spellcheck="false" style="font-size:11px;" />
+      </div>
+      <div style="font-size:9px;color:var(--muted);margin-top:4px;">Add Bearer Token for full tweet history. Without token: recent posts only via RSS.</div>
     </div>
   </div>
 </section>
@@ -401,15 +405,34 @@ async function startScan() {
     // Twitter/X activity
     let twitterData = { tweets: 0, exists: false };
     const twitterRaw = document.getElementById("twitterInput").value.trim();
+    const twitterToken = document.getElementById("twitterToken").value.trim();
     const twitterHandle = twitterRaw.replace(/^@/, "").replace(/\s/g, "");
     if (twitterHandle) {
       setLoading("Checking X/Twitter activity...", true);
       try {
-        const r = await fetch(getProxyUrl("https://nitter.net/" + twitterHandle + "/rss"));
-        const html = await r.text();
-        const tweetMatches = html.match(/<item>/g);
-        twitterData.tweets = tweetMatches ? tweetMatches.length : 0;
-        twitterData.exists = twitterData.tweets > 0;
+        if (twitterToken) {
+          // Twitter API v2 — full tweet count
+          const userR = await fetch(getProxyUrl("https://api.twitter.com/2/users/by/username/" + twitterHandle), {
+            headers: { "Authorization": "Bearer " + twitterToken }
+          });
+          const userD = await userR.json();
+          const userId = userD.data?.id;
+          if (userId) {
+            const twR = await fetch(getProxyUrl("https://api.twitter.com/2/users/" + userId + "?user.fields=public_metrics"), {
+              headers: { "Authorization": "Bearer " + twitterToken }
+            });
+            const twD = await twR.json();
+            twitterData.tweets = twD.data?.public_metrics?.tweet_count || 0;
+            twitterData.exists = twitterData.tweets > 0;
+          }
+        } else {
+          // Nitter RSS — recent posts only
+          const r = await fetch(getProxyUrl("https://nitter.net/" + twitterHandle + "/rss"));
+          const html = await r.text();
+          const tweetMatches = html.match(/<item>/g);
+          twitterData.tweets = tweetMatches ? tweetMatches.length : 0;
+          twitterData.exists = twitterData.tweets > 0;
+        }
       } catch(e){}
     }
 
