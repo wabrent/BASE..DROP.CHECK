@@ -65,7 +65,12 @@ nav {
 .scan-btn:active { transform: scale(0.98); }
 .scan-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 .ticker { border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); background: var(--surface); overflow: hidden; padding: 10px 0; margin: 0; }
-.ticker-inner { display: flex; gap: 3rem; animation: ticker 28s linear infinite; white-space: nowrap; }
+.ticker-inner {
+  display: flex; gap: 3rem;
+  animation: ticker 30s linear infinite;
+  white-space: nowrap;
+  will-change: transform;
+}
 @keyframes ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 .ticker-item { font-size: 11px; letter-spacing: 0.14em; color: var(--muted2); text-transform: uppercase; flex-shrink: 0; }
 .ticker-item strong { color: var(--accent2); margin-right: 4px; }
@@ -357,15 +362,10 @@ const tickerItems = [
   ["CHAIN ID","8453"],["TOTAL TXS","Check your wallet"],
   ["TOKEN","Not yet launched"],["ELIGIBILITY","Score now"],
   ["CRITERIA","9 factors"],["DATA","Blockscout API"],
-  ["BASE NETWORK","Layer 2 by Coinbase"],["AIRDROP","Unconfirmed"],
-  ["CHAIN ID","8453"],["TOTAL TXS","Check your wallet"],
-  ["TOKEN","Not yet launched"],["ELIGIBILITY","Score now"],
-  ["CRITERIA","9 factors"],["DATA","Blockscout API"],
 ];
 const ti = document.getElementById("tickerInner");
-[...tickerItems,...tickerItems].forEach(([k,v]) => {
-  ti.innerHTML += `<span class="ticker-item"><strong>${k}</strong>${v}</span>`;
-});
+const tickHtml = tickerItems.map(([k,v]) => `<span class="ticker-item"><strong>${k}</strong>${v}</span>`).join("");
+ti.innerHTML = tickHtml + tickHtml;
 
 async function startScan() {
   const raw = document.getElementById("addrInput").value.trim();
