@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>BASE DROP — Airdrop Eligibility Checker</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='10' fill='%230052ff'/%3E%3Ctext x='32' y='46' font-family='Arial Black,sans-serif' font-size='40' font-weight='bold' fill='white' text-anchor='middle'%3EB%3C/text%3E%3C/svg%3E" />
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Bebas+Neue&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet" />
+<style>
+:root {
+  --bg: #0a0a0a;
+  --surface: #111111;
+  --surface2: #181818;
+  --border: #222222;
+  --border2: #2e2e2e;
+  --text: #f0f0f0;
+  --muted: #555;
+  --muted2: #777;
+  --accent: #0052ff;
+  --accent2: #3b82ff;
+  --green: #00d97e;
+  --amber: #f59e0b;
+  --red: #ef4444;
+  --white: #ffffff;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Mono', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 2rem; height: 52px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(10,10,10,0.92);
+  backdrop-filter: blur(12px);
+}
+.nav-logo { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 0.1em; color: var(--white); }
+.nav-logo span { color: var(--accent2); }
+.nav-links { display: flex; gap: 1.5rem; }
+.nav-links a { color: var(--muted2); font-size: 11px; text-decoration: none; letter-spacing: 0.08em; text-transform: uppercase; transition: color 0.2s; }
+.nav-links a:hover { color: var(--text); }
+.nav-badge { font-size: 10px; letter-spacing: 0.12em; color: var(--accent2); border: 1px solid var(--accent); padding: 3px 8px; border-radius: 2px; text-transform: uppercase; }
+.hero { padding: 120px 2rem 60px; max-width: 900px; margin: 0 auto; }
+.hero-eyebrow { font-size: 11px; letter-spacing: 0.2em; color: var(--muted2); text-transform: uppercase; margin-bottom: 1rem; display: flex; align-items: center; gap: 8px; }
+.hero-eyebrow::before { content: ''; display: inline-block; width: 24px; height: 1px; background: var(--accent2); }
+.hero-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(56px, 10vw, 110px); line-height: 0.9; letter-spacing: 0.02em; color: var(--white); margin-bottom: 1.5rem; }
+.hero-title span { color: var(--accent2); }
+.hero-sub { font-size: 13px; color: var(--muted2); max-width: 460px; line-height: 1.8; margin-bottom: 2.5rem; }
+.input-card { background: var(--surface); border: 1px solid var(--border2); border-radius: 4px; padding: 1.25rem; max-width: 600px; }
+.input-label { font-size: 10px; letter-spacing: 0.18em; color: var(--muted2); text-transform: uppercase; margin-bottom: 10px; }
+.input-row { display: flex; gap: 8px; align-items: stretch; }
+.addr-input { flex: 1; background: var(--bg); border: 1px solid var(--border2); border-radius: 2px; padding: 10px 14px; color: var(--text); font-family: 'DM Mono', monospace; font-size: 13px; outline: none; transition: border-color 0.2s; }
+.addr-input::placeholder { color: var(--muted); }
+.addr-input:focus { border-color: var(--accent); }
+.scan-btn { background: var(--accent); border: none; border-radius: 2px; color: var(--white); font-family: 'Space Mono', monospace; font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; padding: 10px 20px; cursor: pointer; transition: background 0.15s, transform 0.1s; white-space: nowrap; }
+.scan-btn:hover { background: var(--accent2); }
+.scan-btn:active { transform: scale(0.98); }
+.scan-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.ticker { border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); background: var(--surface); overflow: hidden; padding: 10px 0; margin: 0; }
+.ticker-inner { display: flex; gap: 3rem; animation: ticker 28s linear infinite; white-space: nowrap; }
+@keyframes ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.ticker-item { font-size: 11px; letter-spacing: 0.14em; color: var(--muted2); text-transform: uppercase; flex-shrink: 0; }
+.ticker-item strong { color: var(--accent2); margin-right: 4px; }
+.main { max-width: 900px; margin: 0 auto; padding: 0 2rem 4rem; }
+.error-msg { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.25); border-radius: 2px; color: var(--red); padding: 10px 14px; font-size: 12px; margin: 1.5rem 0; display: none; }
+.loading-state { display: none; align-items: center; gap: 12px; padding: 2rem 0; color: var(--muted2); font-size: 12px; letter-spacing: 0.08em; }
+.loading-state.active { display: flex; }
+.spin { width: 14px; height: 14px; border: 1.5px solid var(--border2); border-top-color: var(--accent2); border-radius: 50%; animation: spin 0.6s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.results { display: none; margin-top: 2rem; }
+.results.visible { display: block; }
+.sec-header { display: flex; align-items: center; justify-content: space-between; padding: 1rem 0 0.75rem; border-bottom: 1px solid var(--border); margin-bottom: 1rem; }
+.sec-title { font-size: 10px; letter-spacing: 0.2em; color: var(--muted2); text-transform: uppercase; }
+.sec-tag { font-size: 10px; letter-spacing: 0.1em; padding: 2px 8px; border-radius: 2px; border: 1px solid; text-transform: uppercase; }
+.tag-green { border-color: var(--green); color: var(--green); background: rgba(0,217,126,0.06); }
+.tag-amber { border-color: var(--amber); color: var(--amber); background: rgba(245,158,11,0.06); }
+.tag-red { border-color: var(--red); color: var(--red); background: rgba(239,68,68,0.06); }
+.tag-blue { border-color: var(--accent2); color: var(--accent2); background: rgba(59,130,255,0.06); }
+.stats-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 2px; overflow: hidden; margin-bottom: 1px; }
+.stat-cell { background: var(--surface); padding: 1.1rem 1rem; display: flex; flex-direction: column; gap: 6px; }
+.stat-cell:hover { background: var(--surface2); }
+.stat-label { font-size: 10px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; }
+.stat-val { font-family: 'Bebas Neue', sans-serif; font-size: 28px; line-height: 1; color: var(--text); }
+.stat-val.green { color: var(--green); }
+.stat-val.amber { color: var(--amber); }
+.stat-val.red { color: var(--red); }
+.stat-sub { font-size: 10px; color: var(--muted); }
+.score-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--border); border: 1px solid var(--border); border-top: none; margin-bottom: 1.5rem; }
+.score-big { background: var(--surface); padding: 1.25rem 1rem; }
+.score-big-label { font-size: 10px; color: var(--muted); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 8px; }
+.score-number { font-family: 'Bebas Neue', sans-serif; font-size: 56px; line-height: 1; display: flex; align-items: baseline; gap: 6px; }
+.score-denom { font-size: 20px; color: var(--muted); }
+.score-bar-wrap { margin-top: 10px; }
+.score-bar-bg { height: 3px; background: var(--border2); border-radius: 999px; overflow: hidden; }
+.score-bar-fill { height: 3px; border-radius: 999px; transition: width 0.8s cubic-bezier(0.16,1,0.3,1); }
+.est-big { background: var(--surface); padding: 1.25rem 1rem; }
+.est-big-label { font-size: 10px; color: var(--muted); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 8px; }
+.est-tokens { font-family: 'Bebas Neue', sans-serif; font-size: 56px; line-height: 1; color: var(--accent2); display: flex; align-items: baseline; gap: 8px; }
+.est-token-unit { font-size: 18px; color: var(--muted2); }
+.est-note { font-size: 10px; color: var(--muted); margin-top: 8px; }
+.criteria-wrap { margin-bottom: 1.5rem; }
+.crit-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.crit-row:last-child { border-bottom: none; }
+.crit-left { display: flex; align-items: center; gap: 10px; }
+.crit-indicator { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.ind-yes { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.ind-part { background: var(--amber); box-shadow: 0 0 6px var(--amber); }
+.ind-no { background: var(--muted); }
+.crit-name { font-size: 12px; color: var(--text); letter-spacing: 0.02em; }
+.crit-right { display: flex; align-items: center; gap: 1rem; }
+.crit-current { font-size: 11px; color: var(--muted2); font-family: 'Space Mono', monospace; }
+.crit-status { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; }
+.cs-yes { color: var(--green); }
+.cs-part { color: var(--amber); }
+.cs-no { color: var(--red); }
+.est-breakdown { background: var(--surface); border: 1px solid var(--border); border-radius: 2px; overflow: hidden; margin-bottom: 1.5rem; }
+.est-row-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 1rem; border-bottom: 1px solid var(--border); font-size: 12px; }
+.est-row-item:last-child { border-bottom: none; background: var(--surface2); }
+.est-row-label { color: var(--muted2); }
+.est-row-val { font-family: 'Space Mono', monospace; color: var(--text); font-size: 11px; }
+.est-row-item.total .est-row-label { color: var(--text); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; font-size: 11px; }
+.est-row-item.total .est-row-val { color: var(--accent2); font-size: 14px; }
+.tx-table-wrap { border: 1px solid var(--border); border-radius: 2px; overflow: hidden; margin-bottom: 2rem; }
+.tx-table-header { display: grid; grid-template-columns: 2fr 1.5fr 1fr 1fr; background: var(--surface2); padding: 8px 1rem; border-bottom: 1px solid var(--border); }
+.tx-table-header span { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.12em; }
+.tx-rows { max-height: 200px; overflow-y: auto; }
+.tx-row-item { display: grid; grid-template-columns: 2fr 1.5fr 1fr 1fr; padding: 8px 1rem; border-bottom: 1px solid var(--border); align-items: center; }
+.tx-row-item:last-child { border-bottom: none; }
+.tx-row-item:hover { background: var(--surface2); }
+.tx-hash-link { color: var(--accent2); font-family: 'Space Mono', monospace; font-size: 11px; text-decoration: none; }
+.tx-hash-link:hover { text-decoration: underline; }
+.tx-type-badge { font-size: 10px; padding: 2px 7px; border-radius: 2px; text-transform: uppercase; letter-spacing: 0.06em; display: inline-block; width: fit-content; }
+.badge-out { background: rgba(239,68,68,0.1); color: var(--red); border: 1px solid rgba(239,68,68,0.2); }
+.badge-in { background: rgba(0,217,126,0.1); color: var(--green); border: 1px solid rgba(0,217,126,0.2); }
+.badge-contract { background: rgba(59,130,255,0.1); color: var(--accent2); border: 1px solid rgba(59,130,255,0.2); }
+.tx-val { font-size: 11px; color: var(--muted2); font-family: 'Space Mono', monospace; }
+.tx-time { font-size: 11px; color: var(--muted); }
+.disclaimer { font-size: 11px; color: var(--muted); padding: 1rem 0; border-top: 1px solid var(--border); line-height: 1.7; }
+.disclaimer a { color: var(--muted2); text-decoration: underline; }
+footer { border-top: 1px solid var(--border); padding: 1.5rem 2rem; max-width: 900px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
+.foot-logo { font-family: 'Bebas Neue', sans-serif; font-size: 18px; color: var(--muted2); letter-spacing: 0.1em; }
+.foot-links { display: flex; gap: 1.5rem; }
+.foot-links a { font-size: 10px; color: var(--muted); text-decoration: none; letter-spacing: 0.1em; text-transform: uppercase; }
+.foot-copy { font-size: 10px; color: var(--muted); letter-spacing: 0.06em; }
+@media (max-width: 600px) {
+  .stats-grid { grid-template-columns: repeat(3, 1fr); }
+  .score-row { grid-template-columns: 1fr; }
+  .hero-title { font-size: 52px; }
+  .tx-table-header, .tx-row-item { grid-template-columns: 2fr 1fr 1fr; }
+  .tx-table-header span:nth-child(3), .tx-row-item > *:nth-child(3) { display: none; }
+}
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: var(--surface); }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">BASE<span>—</span>DROP</div>
+  <div class="nav-links">
+    <a href="https://base.org" target="_blank">Base Network</a>
+    <a href="https://basescan.org" target="_blank">Explorer</a>
+  </div>
+  <div class="nav-badge">LIVE DATA</div>
+</nav>
+
+<section class="hero">
+  <div class="hero-eyebrow">Airdrop eligibility scanner</div>
+  <h1 class="hero-title">BASE<br><span>DROP.</span><br>CHECK.</h1>
+  <p class="hero-sub">Scan any wallet's BASE network activity + X/Twitter. Get a real eligibility score and token estimate before the drop hits.</p>
+
+  <div class="input-card">
+    <div class="input-label">Wallet address (BASE network)</div>
+    <div class="input-row">
+      <input class="addr-input" id="addrInput" type="text" placeholder="0x..." autocomplete="off" spellcheck="false" />
+      <button class="scan-btn" id="scanBtn" onclick="startScan()">SCAN ↗</button>
+    </div>
+    <div style="margin-top:12px;">
+      <div class="input-label">X/Twitter handle (optional)</div>
+      <div class="input-row">
+        <input class="addr-input" id="twitterInput" type="text" placeholder="@handle" autocomplete="off" spellcheck="false" style="flex:none;width:220px;" />
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="ticker">
+  <div class="ticker-inner" id="tickerInner"></div>
+</div>
+
+<div class="main">
+  <div class="error-msg" id="errorMsg"></div>
+
+  <div class="loading-state" id="loadingState">
+    <div class="spin"></div>
+    <span id="loadingText">Initializing...</span>
+  </div>
+
+  <div class="results" id="results">
+
+    <div>
+      <div class="sec-header">
+        <span class="sec-title">On-chain metrics — BASE network</span>
+        <span class="sec-tag tag-blue" id="scoreTag">CALCULATING</span>
+      </div>
+      <div class="stats-grid" id="statsGrid"></div>
+
+      <div class="score-row">
+        <div class="score-big">
+          <div class="score-big-label">Airdrop eligibility score</div>
+          <div class="score-number">
+            <span id="scoreNum" style="color:var(--green)">0</span>
+            <span class="score-denom">/ 100</span>
+          </div>
+          <div class="score-bar-wrap">
+            <div class="score-bar-bg">
+              <div class="score-bar-fill" id="scoreBar" style="width:0%;background:var(--green)"></div>
+            </div>
+          </div>
+        </div>
+        <div class="est-big">
+          <div class="est-big-label">Estimated airdrop</div>
+          <div class="est-tokens">
+            <span id="estNum">0</span>
+            <span class="est-token-unit">BASE</span>
+          </div>
+          <div class="est-note">If BASE token launches — model based on public criteria</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="criteria-wrap">
+      <div class="sec-header">
+        <span class="sec-title">Eligibility criteria</span>
+        <span class="sec-tag" id="critTag">0/9 MET</span>
+      </div>
+      <div id="critList"></div>
+    </div>
+
+    <div>
+      <div class="sec-header">
+        <span class="sec-title">Token estimate breakdown</span>
+        <span class="sec-tag tag-blue">PROJECTED</span>
+      </div>
+      <div class="est-breakdown" id="estBreakdown"></div>
+    </div>
+
+    <div>
+      <div class="sec-header">
+        <span class="sec-title">Recent transactions — BASE</span>
+        <span id="txCountTag" class="sec-tag tag-blue">0 TXS</span>
+      </div>
+      <div class="tx-table-wrap">
+        <div class="tx-table-header">
+          <span>Tx Hash</span>
+          <span>Type</span>
+          <span>Value (ETH)</span>
+          <span>When</span>
+        </div>
+        <div class="tx-rows" id="txRows"></div>
+      </div>
+    </div>
+
+    <div class="disclaimer">
+      Data sourced live from Base Blockscout API. Token estimates are speculative projections based on observed Coinbase/BASE activity criteria — not financial advice. BASE token has not been officially announced.
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="foot-logo">BASE—DROP</div>
+  <div class="foot-links">
+    <a href="https://base.org" target="_blank">Base.org</a>
+    <a href="https://basescan.org" target="_blank">Basescan</a>
+  </div>
+  <div class="foot-copy">© 2025 NOT AFFILIATED WITH COINBASE</div>
+</footer>
+
+<script>
+const API_BASE = "https://base.blockscout.com/api";
+
+function getProxyUrl(url) {
+  return "https://api.codetabs.com/v1/proxy?quest=" + encodeURIComponent(url);
+}
+
+async function callAPI(params, retries = 2) {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const query = new URLSearchParams(params).toString();
+      const url = API_BASE + "?" + query;
+      const r = await fetch(getProxyUrl(url));
+      const d = await r.json();
+      if (d.status === "0" && d.message !== "No transactions found") {
+        if (attempt < retries) { await new Promise(r => setTimeout(r, 500)); continue; }
+        return [];
+      }
+      return d.result || [];
+    } catch(e) {
+      if (attempt < retries) { await new Promise(r => setTimeout(r, 500)); continue; }
+      return [];
+    }
+  }
+  return [];
+}
+
+async function fetchAllPages(module, action, addr, progressCb) {
+  let all = [], page = 1;
+  const actOffset = action === "tokennfttx" ? 10 : 50;
+  while (true) {
+    let batch = await callAPI({ module, action, address: addr, startblock: 0, endblock: 99999999, sort: "desc", offset: actOffset, page });
+    if (!batch || !batch.length) break;
+    all = all.concat(batch);
+    if (progressCb) progressCb(all.length);
+    if (batch.length < actOffset || page >= 200) break;
+    page++;
+    await new Promise(res => setTimeout(res, 100));
+  }
+  return all;
+}
+
+function timeAgo(ts) {
+  const s = Math.floor(Date.now()/1000) - parseInt(ts);
+  if (s < 60) return s + "s ago";
+  if (s < 3600) return Math.floor(s/60) + "m ago";
+  if (s < 86400) return Math.floor(s/3600) + "h ago";
+  return Math.floor(s/86400) + "d ago";
+}
+
+function showError(msg) {
+  const el = document.getElementById("errorMsg");
+  el.textContent = msg;
+  el.style.display = "block";
+}
+function hideError() { document.getElementById("errorMsg").style.display = "none"; }
+function setLoading(msg, show) {
+  const el = document.getElementById("loadingState");
+  document.getElementById("loadingText").textContent = msg;
+  el.classList.toggle("active", show);
+}
+
+// TICKER
+const tickerItems = [
+  ["BASE NETWORK","Layer 2 by Coinbase"],["AIRDROP","Unconfirmed"],
+  ["CHAIN ID","8453"],["TOTAL TXS","Check your wallet"],
+  ["TOKEN","Not yet launched"],["ELIGIBILITY","Score now"],
+  ["CRITERIA","9 factors"],["DATA","Blockscout API"],
+  ["BASE NETWORK","Layer 2 by Coinbase"],["AIRDROP","Unconfirmed"],
+  ["CHAIN ID","8453"],["TOTAL TXS","Check your wallet"],
+  ["TOKEN","Not yet launched"],["ELIGIBILITY","Score now"],
+  ["CRITERIA","9 factors"],["DATA","Blockscout API"],
+];
+const ti = document.getElementById("tickerInner");
+[...tickerItems,...tickerItems].forEach(([k,v]) => {
+  ti.innerHTML += `<span class="ticker-item"><strong>${k}</strong>${v}</span>`;
+});
+
+async function startScan() {
+  const raw = document.getElementById("addrInput").value.trim();
+  if (!raw) { showError("Enter a wallet address"); return; }
+  if (!(raw.startsWith("0x") && raw.length === 42)) {
+    showError("Invalid address — must be 0x followed by 40 hex characters");
+    return;
+  }
+
+  const addr = raw.toLowerCase();
+  hideError();
+  document.getElementById("results").classList.remove("visible");
+  document.getElementById("scanBtn").disabled = true;
+
+  try {
+    setLoading("Fetching transactions from BASE...", true);
+    const txList = await fetchAllPages("account", "txlist", addr, n => {
+      setLoading(`Fetching transactions — ${n} loaded...`, true);
+    });
+
+    setLoading(`Found ${txList.length} txs — fetching token transfers...`, true);
+    const tokenTx = await fetchAllPages("account", "tokentx", addr, n => {
+      setLoading(`Fetching token transfers — ${n} loaded...`, true);
+    });
+
+    setLoading("Checking NFT activity...", true);
+    const nftTx = await fetchAllPages("account", "tokennfttx", addr, null);
+
+    setLoading("Reading ETH balance...", true);
+    let balRaw = "0";
+    try {
+      const r = await fetch(getProxyUrl(API_BASE + "?module=account&action=balance&address=" + addr + "&tag=latest"));
+      const d = await r.json();
+      balRaw = d.result || "0";
+    } catch(e){}
+
+    // Twitter/X activity
+    let twitterData = { tweets: 0, exists: false };
+    const twitterRaw = document.getElementById("twitterInput").value.trim();
+    const twitterHandle = twitterRaw.replace(/^@/, "").replace(/\s/g, "");
+    if (twitterHandle) {
+      setLoading("Checking X/Twitter activity...", true);
+      try {
+        const r = await fetch(getProxyUrl("https://nitter.net/" + twitterHandle + "/rss"));
+        const html = await r.text();
+        const tweetMatches = html.match(/<item>/g);
+        twitterData.tweets = tweetMatches ? tweetMatches.length : 0;
+        twitterData.exists = twitterData.tweets > 0;
+      } catch(e){}
+    }
+
+    setLoading("Computing eligibility score...", true);
+    render(addr, txList, tokenTx, nftTx, balRaw, twitterData);
+
+  } catch(err) {
+    showError("Scan error: " + (err.message || "Unknown"));
+  }
+
+  setLoading("", false);
+  document.getElementById("scanBtn").disabled = false;
+}
+
+function render(addr, txArr, tokenArr, nftArr, balRaw, twitterData) {
+  const normalizeTx = t => ({
+    hash: t.hash || "",
+    from: t.from || "",
+    to: t.to || "",
+    value: t.value || "0",
+    timeStamp: parseInt(t.timeStamp) || 0,
+    input: t.input || "0x",
+  });
+
+  const txs = txArr.map(normalizeTx);
+  const outTx = txs.filter(t => t.from && t.from.toLowerCase() === addr);
+  const totalTx = txs.length;
+
+  const months = new Set();
+  outTx.forEach(t => {
+    if (t.timeStamp) {
+      const d = new Date(t.timeStamp * 1000);
+      months.add(d.getFullYear() + "-" + d.getMonth());
+    }
+  });
+  const activeMonths = months.size;
+
+  const contracts = new Set(outTx.filter(t => t.input && t.input !== "0x" && t.to).map(t => t.to.toLowerCase()));
+  const uniqueContracts = contracts.size;
+
+  const totalVolEth = outTx.reduce((s, t) => s + parseInt(t.value || 0), 0) / 1e18;
+
+  const uniqueTokens = new Set(tokenArr.map(t => t.contractAddress).filter(Boolean)).size;
+  const nftCount = nftArr.length;
+  const balEth = parseInt(balRaw || 0) / 1e18;
+  const firstTx = txs.length ? txs[txs.length - 1].timeStamp : null;
+  const ageDays = firstTx ? Math.floor((Math.floor(Date.now() / 1000) - firstTx) / 86400) : 0;
+  const twTweets = twitterData ? twitterData.tweets : 0;
+  const twExists = twitterData ? twitterData.exists : false;
+
+  const criteria = [
+    { name:"10+ transactions on BASE", val:totalTx, unit:"tx", met:totalTx>=10, part:totalTx>=3&&totalTx<10, need:totalTx<10?`need ${10-totalTx} more`:"" },
+    { name:"Active for 3+ months", val:activeMonths, unit:"mo", met:activeMonths>=3, part:activeMonths>=1&&activeMonths<3, need:activeMonths<3?`need ${3-activeMonths} more`:"" },
+    { name:"5+ protocol interactions", val:uniqueContracts, unit:"", met:uniqueContracts>=5, part:uniqueContracts>=2&&uniqueContracts<5, need:uniqueContracts<5?`need ${5-uniqueContracts} more`:"" },
+    { name:"Volume > 0.1 ETH", val:totalVolEth.toFixed(3), unit:"ETH", met:totalVolEth>=0.1, part:totalVolEth>=0.01&&totalVolEth<0.1, need:totalVolEth<0.1?`need ${(0.1-totalVolEth).toFixed(3)} more`:"" },
+    { name:"5+ ERC-20 tokens", val:uniqueTokens, unit:"", met:uniqueTokens>=5, part:uniqueTokens>=2&&uniqueTokens<5, need:uniqueTokens<5?`need ${5-uniqueTokens} more`:"" },
+    { name:"NFT activity", val:nftCount, unit:"", met:nftCount>=1, part:false, need:nftCount===0?"none found":"" },
+    { name:"Wallet age 90+ days", val:ageDays, unit:"d", met:ageDays>=90, part:ageDays>=30&&ageDays<90, need:ageDays<90?`need ${90-ageDays} more days`:"" },
+    { name:"Balance > 0.01 ETH", val:balEth.toFixed(4), unit:"ETH", met:balEth>=0.01, part:false, need:balEth<0.01?"below threshold":"" },
+    { name:"X/Twitter activity (10+ posts)", val:twTweets, unit:"posts", met:twTweets>=10, part:twTweets>=1&&twTweets<10, need:twTweets<10?`need ${10-twTweets} more`:twExists?"":"no X handle" },
+  ];
+
+  let score = 0;
+  criteria.forEach(c => { if(c.met) score += 11; else if(c.part) score += 4; });
+  score = Math.min(score, 100);
+
+  const metCount = criteria.filter(c=>c.met).length;
+  const partCount = criteria.filter(c=>c.part).length;
+  const estTokens = metCount*200 + partCount*40 + 500;
+  const scoreColor = score>=70?"var(--green)":score>=40?"var(--amber)":"var(--red)";
+  const scoreLabel = score>=70?"ELIGIBLE":score>=40?"PARTIAL":"LOW";
+  const tagClass = score>=70?"tag-green":score>=40?"tag-amber":"tag-red";
+
+  // Stats grid
+  const stats = [
+    {label:"Total TXs",val:totalTx,cls:totalTx>=10?"green":totalTx>=3?"amber":"red",sub:"on BASE"},
+    {label:"Active Months",val:activeMonths,cls:activeMonths>=3?"green":activeMonths>=1?"amber":"red",sub:"unique calendar mo."},
+    {label:"Protocols",val:uniqueContracts,cls:uniqueContracts>=5?"green":uniqueContracts>=2?"amber":"red",sub:"unique contracts"},
+    {label:"Volume ETH",val:totalVolEth.toFixed(2),cls:totalVolEth>=0.1?"green":totalVolEth>=0.01?"amber":"red",sub:"total sent"},
+    {label:"ERC-20 Tokens",val:uniqueTokens,cls:"",sub:"unique"},
+    {label:"NFT Txs",val:nftCount,cls:"",sub:"transfers"},
+  ];
+  document.getElementById("statsGrid").innerHTML = stats.map(s=>`
+    <div class="stat-cell">
+      <div class="stat-label">${s.label}</div>
+      <div class="stat-val ${s.cls}">${s.val}</div>
+      <div class="stat-sub">${s.sub}</div>
+    </div>
+  `).join("");
+
+  // Score tag
+  document.getElementById("scoreTag").textContent = scoreLabel;
+  document.getElementById("scoreTag").className = "sec-tag " + tagClass;
+  document.getElementById("scoreNum").textContent = score;
+  document.getElementById("scoreNum").style.color = scoreColor;
+  const bar = document.getElementById("scoreBar");
+  bar.style.background = scoreColor;
+  setTimeout(()=>{ bar.style.width = score+"%"; },100);
+  document.getElementById("estNum").textContent = estTokens.toLocaleString();
+
+  // Criteria list
+  document.getElementById("critTag").textContent = metCount+"/9 MET";
+  document.getElementById("critTag").className = "sec-tag " + tagClass;
+  document.getElementById("critList").innerHTML = criteria.map(c => {
+    const indCls = c.met?"ind-yes":c.part?"ind-part":"ind-no";
+    const stCls = c.met?"cs-yes":c.part?"cs-part":"cs-no";
+    const stTxt = c.met?"MET":c.part?"PARTIAL":"MISSING";
+    return `<div class="crit-row">
+      <div class="crit-left">
+        <div class="crit-indicator ${indCls}"></div>
+        <span class="crit-name">${c.name}</span>
+      </div>
+      <div class="crit-right">
+        <span class="crit-current">${c.val}${c.unit?" "+c.unit:""}</span>
+        <span class="crit-status ${stCls}">${stTxt}${c.need?" — "+c.need:""}</span>
+      </div>
+    </div>`;
+  }).join("");
+
+  // Estimate breakdown
+  const tiers = [
+    {label:"Base allocation (participation bonus)", tokens:500},
+    {label:`Full criteria met (${metCount}× 200 tokens)`, tokens:metCount*200},
+    {label:`Partial criteria (${partCount}× 40 tokens)`, tokens:partCount*40},
+  ];
+  document.getElementById("estBreakdown").innerHTML = tiers.map(t=>`
+    <div class="est-row-item">
+      <span class="est-row-label">${t.label}</span>
+      <span class="est-row-val">+${t.tokens.toLocaleString()}</span>
+    </div>
+  `).join("") + `<div class="est-row-item total">
+    <span class="est-row-label">Total estimated tokens</span>
+    <span class="est-row-val">${estTokens.toLocaleString()} BASE</span>
+  </div>`;
+
+  // TX table
+  const recent = txs.slice(0, 25);
+  document.getElementById("txCountTag").textContent = txs.length + " TXS";
+  if (!recent.length) {
+    document.getElementById("txRows").innerHTML = `<div style="padding:1rem;font-size:12px;color:var(--muted);">No transactions found on BASE</div>`;
+  } else {
+    document.getElementById("txRows").innerHTML = recent.map(t => {
+      const isOut = t.from && t.from.toLowerCase() === addr;
+      const isContract = isOut && t.input && t.input !== "0x";
+      const type = isContract ? "CONTRACT" : isOut ? "TRANSFER OUT" : "TRANSFER IN";
+      const badgeCls = isContract ? "badge-contract" : isOut ? "badge-out" : "badge-in";
+      const hash = (t.hash || "").slice(0, 10) + "...";
+      const valEth = (parseInt(t.value || 0) / 1e18).toFixed(4);
+      return `<div class="tx-row-item">
+        <a class="tx-hash-link" href="https://basescan.org/tx/${t.hash}" target="_blank">${hash}</a>
+        <span><span class="tx-type-badge ${badgeCls}">${type}</span></span>
+        <span class="tx-val">${valEth}</span>
+        <span class="tx-time">${t.timeStamp ? timeAgo(t.timeStamp) : ""}</span>
+      </div>`;
+    }).join("");
+  }
+
+  document.getElementById("results").classList.add("visible");
+}
+
+document.getElementById("addrInput").addEventListener("keydown", e => {
+  if (e.key === "Enter") startScan();
+});
+</script>
+</body>
+</html>
