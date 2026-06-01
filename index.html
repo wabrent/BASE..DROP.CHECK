@@ -215,8 +215,9 @@ function getProtocol(addr) {
 }
 
 async function proxyFetch(url, auth) {
-  const headers = auth ? { Authorization: "Bearer " + auth } : {};
-  const r = await fetch(PROXY + encodeURIComponent(url), { headers });
+  let finalUrl = PROXY + encodeURIComponent(url);
+  if (auth) finalUrl += "&auth=" + encodeURIComponent(auth);
+  const r = await fetch(finalUrl);
   return await r.text();
 }
 

@@ -1,9 +1,8 @@
 export default async function handler(req, res) {
-  // CORS preflight
   if (req.method === "OPTIONS") {
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type");
+    res.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type, X-Auth-Token");
     return res.status(204).end();
   }
 
@@ -12,9 +11,10 @@ export default async function handler(req, res) {
 
   try {
     const headers = {};
-    if (req.headers.authorization) {
-      headers.Authorization = req.headers.authorization;
-    }
+    // Check both Authorization header and X-Auth-Token query param
+    const auth = req.headers.authorization || req.query?.auth;
+    if (auth) headers.Authorization = auth.startsWith("Bearer ") ? auth : "Bearer " + auth;
+
     const r = await fetch(decodeURIComponent(url), { headers });
     const text = await r.text();
     const ct = r.headers.get("content-type") || "text/plain";
