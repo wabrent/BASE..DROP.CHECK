@@ -211,22 +211,41 @@ function TrustSection() {
   ];
   return (
     <div className="w-full">
-      <div className="grid grid-cols-3 gap-4 mb-10 max-w-[600px] mx-auto">
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+        className="grid grid-cols-3 gap-4 mb-10 max-w-[600px] mx-auto"
+      >
         {[["10M+","Wallets Analyzed"],["250M+","Transactions Indexed"],["300+","Base Protocols"]].map(([v,l],i)=>(
-          <div key={i} className="text-center">
+          <motion.div
+            key={i}
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.2 + i * 0.15, duration: 0.5 }}
+            className="text-center"
+          >
             <div className="text-xl font-bold text-white tracking-[-0.02em]">{v}</div>
             <div className="text-[10px] text-white/25 uppercase tracking-wider mt-1">{l}</div>
-          </div>
+          </motion.div>
         ))}
-      </div>
-      <div className="flex items-center justify-center gap-8 opacity-15">
+      </motion.div>
+      <motion.div
+        initial={{ opacity: 0 }}
+        whileInView={{ opacity: 0.15 }}
+        viewport={{ once: true }}
+        transition={{ delay: 0.4, duration: 0.8 }}
+        className="flex items-center justify-center gap-8"
+      >
         {logos.map((l, i) => (
           <div key={i} className="flex items-center gap-2">
             <div className="w-6 h-6 rounded bg-white/10 flex items-center justify-center text-[10px] font-bold text-white/80">{l.letter}</div>
             <span className="text-[11px] text-white/50 font-medium">{l.name}</span>
           </div>
         ))}
-      </div>
+      </motion.div>
     </div>
   );
 }
@@ -336,7 +355,7 @@ export default function Home() {
               <span className="text-white/10">·</span>
               <span>Gas: 0.001 Gwei</span>
               <span className="text-white/10">·</span>
-              <span className="text-[#10B981]">● Live</span>
+              <span className="text-[#10B981] animate-pulse">● Live</span>
             </div>
           </div>
 
