@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion } from "motion/react";
-import { ArrowRight, Search, Activity, Shield, Layers, Sparkles, TrendingUp, Clock, Zap, Circle } from "lucide-react";
+import { ArrowRight, Search, Shield, Layers, Sparkles, TrendingUp, Zap, Circle, Download } from "lucide-react";
+import { toPng } from "html-to-image";
 
 // ── Background — blockchain network style ─────────────
 function NetworkBackground() {
@@ -75,7 +76,7 @@ function ScoreRing({ score, animate }: { score: number; animate: boolean }) {
 }
 
 // ── Dashboard — real product look ─────────────────────
-function Dashboard({ data, score, animate }: { data?: WalletData; score?: number; animate: boolean }) {
+function Dashboard({ data, score, animate, dashRef }: { data?: WalletData; score?: number; animate: boolean; dashRef?: React.Ref<HTMLDivElement> }) {
   const s = data ? data.stats : null;
   const sc = score || 0;
   const rep = reputation(sc);
@@ -83,7 +84,7 @@ function Dashboard({ data, score, animate }: { data?: WalletData; score?: number
   const showData = !!data;
 
   return (
-    <div className="bg-[#0B0B0B] border border-white/[0.06] rounded-3xl overflow-hidden backdrop-blur-sm">
+    <div ref={dashRef} className="bg-[#0B0B0B] border border-white/[0.06] rounded-3xl overflow-hidden backdrop-blur-sm">
       {/* Dashboard chrome — dots */}
       <div className="flex items-center gap-2 px-5 py-3 border-b border-white/[0.04]">
         <Circle className="w-2.5 h-2.5 fill-[#EF4444] text-[#EF4444]" />
@@ -238,6 +239,8 @@ export default function Home() {
   const [data, setData] = useState<WalletData | null>(null);
   const [animate, setAnimate] = useState(false);
   const [page, setPage] = useState<"wallet"|"trending"|"leaderboard">("wallet");
+  const [sharing, setSharing] = useState(false);
+  const dashRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { if (data) setTimeout(()=>setAnimate(true), 400); }, [data]);
 
@@ -266,6 +269,33 @@ export default function Home() {
   }
 
   const score = data ? calcScore(data.stats) : 0;
+
+  async function downloadCard() {
+    if (!dashRef.current) return;
+    setSharing(true);
+    try {
+      const dataUrl = await toPng(dashRef.current, { quality: 1, pixelRatio: 2, backgroundColor: "#0B0B0B" });
+      const link = document.createElement("a");
+      link.download = "basewallet-card.png";
+      link.href = dataUrl;
+      link.click();
+    } catch(e) { console.error(e); }
+    setSharing(false);
+  }
+
+  async function shareToTwitter() {
+    if (!dashRef.current) return;
+    setSharing(true);
+    try {
+      const dataUrl = await toPng(dashRef.current, { quality: 0.95, pixelRatio: 2, backgroundColor: "#0B0B0B" });
+      const addr = data ? data.address.slice(0, 10) + "..." + data.address.slice(-6) : "";
+      const text = encodeURIComponent(`Base Wallet Intelligence ${addr}\nScore: ${score}/100 · ${reputation(score).label}\n\nbase-teal-nu.vercel.app`);
+      // Open Twitter intent — image needs upload, so share link instead
+      const twUrl = `https://twitter.com/intent/tweet?text=${text}`;
+      window.open(twUrl, "_blank");
+    } catch(e) { console.error(e); }
+    setSharing(false);
+  }
 
   return (
     <div className="min-h-screen bg-[#050505] text-white">
@@ -353,8 +383,21 @@ export default function Home() {
                 {/* Right — Dashboard (the main element) */}
                 <motion.div initial={{opacity:0,y:30,scale:0.97}} animate={{opacity:1,y:0,scale:1}} transition={{delay:0.3,duration:0.8,ease:"easeOut"}} className="relative">
                   <div className="absolute -inset-12 bg-[#0052FF]/5 blur-[100px] rounded-full" />
-                  <div className="relative">
-                    <Dashboard data={data||undefined} score={data?score:87} animate={animate} />
+                                                  <div className="relative">
+                    <Dashboard data={data||undefined} score={data?score:87} animate={animate} dashRef={dashRef} />
+                    {/* Share / Download buttons */}
+                    <motion.div initial={{opacity:0}} animate={{opacity:1}} transition={{delay:0.6}} className="flex justify-end gap-2 mt-3">
+                      <button onClick={downloadCard} disabled={sharing}
+                        className="flex items-center gap-1.5 text-[11px] font-medium text-white/25 hover:text-white/50 border border-white/[0.06] hover:border-white/[0.12] rounded-xl px-3 py-2 transition-colors disabled:opacity-30">
+                        <Download className="w-3 h-3" />
+                        Download
+                      </button>
+                      <button onClick={shareToTwitter} disabled={sharing}
+                        className="flex items-center gap-1.5 text-[11px] font-medium text-white/25 hover:text-[#1DA1F2] border border-white/[0.06] hover:border-[#1DA1F2]/20 rounded-xl px-3 py-2 transition-colors disabled:opacity-30">
+                        <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                        Share
+                      </button>
+                    </motion.div>
                   </div>
                 </motion.div>
               </div>
