@@ -1,197 +1,230 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion } from "motion/react";
-import { ArrowRight, Search, Activity, Shield, Clock, Layers, Sparkles, TrendingUp, Zap } from "lucide-react";
+import { ArrowRight, Search, Activity, Shield, Layers, Sparkles, TrendingUp, Clock, Zap, Circle } from "lucide-react";
 
-// ── Animated particle background ──────────────────────
-function ParticleField() {
+// ── Background — blockchain network style ─────────────
+function NetworkBackground() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    let animId: number;
-    const particles: { x: number; y: number; vx: number; vy: number; size: number; opacity: number }[] = [];
-    const count = 80;
-
-    function resize() {
-      canvas!.width = window.innerWidth;
-      canvas!.height = window.innerHeight;
-    }
-    resize();
-    window.addEventListener("resize", resize);
-
-    for (let i = 0; i < count; i++) {
-      particles.push({
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
-        vx: (Math.random() - 0.5) * 0.3,
-        vy: (Math.random() - 0.5) * 0.3,
-        size: Math.random() * 2 + 0.5,
-        opacity: Math.random() * 0.4 + 0.1,
-      });
-    }
-
+    const c = canvasRef.current; if (!c) return;
+    const ctx = c.getContext("2d"); if (!ctx) return;
+    let id: number;
+    const nodes: { x: number; y: number; vx: number; vy: number; r: number }[] = [];
+    for (let i = 0; i < 40; i++) nodes.push({ x: Math.random()*c.width, y: Math.random()*c.height, vx: (Math.random()-0.5)*0.2, vy: (Math.random()-0.5)*0.2, r: Math.random()*1.2+0.3 });
+    function resize() { c!.width = window.innerWidth; c!.height = window.innerHeight; }
+    resize(); window.addEventListener("resize", resize);
     function draw() {
-      ctx!.clearRect(0, 0, canvas!.width, canvas!.height);
-      particles.forEach((p, i) => {
-        p.x += p.vx;
-        p.y += p.vy;
-        if (p.x < 0) p.x = canvas!.width;
-        if (p.x > canvas!.width) p.x = 0;
-        if (p.y < 0) p.y = canvas!.height;
-        if (p.y > canvas!.height) p.y = 0;
-
-        ctx!.beginPath();
-        ctx!.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx!.fillStyle = `rgba(0, 82, 255, ${p.opacity})`;
+      ctx!.clearRect(0,0,c!.width,c!.height);
+      // Subtle grid
+      ctx!.strokeStyle = "rgba(255,255,255,0.012)";
+      ctx!.lineWidth = 0.5;
+      const step = 60;
+      for (let x = 0; x < c!.width; x += step) { ctx!.beginPath(); ctx!.moveTo(x,0); ctx!.lineTo(x,c!.height); ctx!.stroke(); }
+      for (let y = 0; y < c!.height; y += step) { ctx!.beginPath(); ctx!.moveTo(0,y); ctx!.lineTo(c!.width,y); ctx!.stroke(); }
+      // Nodes + connections
+      nodes.forEach((n, i) => {
+        n.x += n.vx; n.y += n.vy;
+        if (n.x<0) n.x=c!.width; if (n.x>c!.width) n.x=0;
+        if (n.y<0) n.y=c!.height; if (n.y>c!.height) n.y=0;
+        ctx!.beginPath(); ctx!.arc(n.x,n.y,n.r,0,Math.PI*2);
+        ctx!.fillStyle = "rgba(0,82,255,0.15)";
         ctx!.fill();
-
-        // Draw connections
-        for (let j = i + 1; j < particles.length; j++) {
-          const dx = particles[j].x - p.x;
-          const dy = particles[j].y - p.y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < 120) {
-            ctx!.beginPath();
-            ctx!.moveTo(p.x, p.y);
-            ctx!.lineTo(particles[j].x, particles[j].y);
-            ctx!.strokeStyle = `rgba(0, 82, 255, ${0.06 * (1 - dist / 120)})`;
-            ctx!.stroke();
-          }
+        for (let j=i+1; j<nodes.length; j++) {
+          const dx=nodes[j].x-n.x, dy=nodes[j].y-n.y, d=Math.sqrt(dx*dx+dy*dy);
+          if (d<150) { ctx!.beginPath(); ctx!.moveTo(n.x,n.y); ctx!.lineTo(nodes[j].x,nodes[j].y); ctx!.strokeStyle=`rgba(0,82,255,${0.03*(1-d/150)})`; ctx!.stroke(); }
         }
       });
-      animId = requestAnimationFrame(draw);
+      id = requestAnimationFrame(draw);
     }
     draw();
-
-    return () => {
-      cancelAnimationFrame(animId);
-      window.removeEventListener("resize", resize);
-    };
+    return () => { cancelAnimationFrame(id); window.removeEventListener("resize",resize); };
   }, []);
-
-  return <canvas ref={canvasRef} className="fixed inset-0 pointer-events-none" />;
+  return <canvas ref={canvasRef} className="fixed inset-0 pointer-events-none opacity-70" />;
 }
 
 // ── Types ──────────────────────────────────────────────
 interface WalletStats { totalTx: number; activeMonths: number; uniqueContracts: number; totalVolEth: number; balEth: number; uniqueTokens: number; ageDays: number; }
 interface Protocol { name: string; icon: string; txCount: number; }
-interface WalletData {
-  address: string; stats: WalletStats; protocols: Protocol[];
-  twitterMetrics: { tweet_count: number; followers_count: number; following_count: number; listed_count: number } | null;
-  recentTxs: { hash: string; from: string; to: string; value: string; timeStamp: string; isContract: boolean }[];
-}
-function calcScore(s: WalletStats) { let x = 0; if (s.totalTx >= 500) x += 25; else if (s.totalTx >= 100) x += 15; else if (s.totalTx >= 10) x += 8; if (s.activeMonths >= 12) x += 20; else if (s.activeMonths >= 6) x += 14; else if (s.activeMonths >= 3) x += 8; if (s.uniqueContracts >= 20) x += 20; else if (s.uniqueContracts >= 10) x += 14; else if (s.uniqueContracts >= 5) x += 8; if (s.totalVolEth >= 10) x += 15; else if (s.totalVolEth >= 1) x += 10; else if (s.totalVolEth >= 0.1) x += 5; if (s.ageDays >= 365) x += 12; else if (s.ageDays >= 180) x += 8; else if (s.ageDays >= 90) x += 4; if (s.balEth >= 0.1) x += 8; else if (s.balEth >= 0.01) x += 4; return Math.min(x, 100); }
-function reputation(score: number) { if (score >= 80) return { label: "Elite", color: "#0052FF" }; if (score >= 60) return { label: "Experienced", color: "#0052FF" }; if (score >= 40) return { label: "Active", color: "rgba(255,255,255,0.5)" }; if (score >= 20) return { label: "Beginner", color: "rgba(255,255,255,0.3)" }; return { label: "New", color: "rgba(255,255,255,0.2)" }; }
-function timeAgo(ts: string) { const s = Math.floor(Date.now() / 1000) - parseInt(ts); if (s < 60) return s + "s"; if (s < 3600) return Math.floor(s / 60) + "m"; if (s < 86400) return Math.floor(s / 3600) + "h"; return Math.floor(s / 86400) + "d"; }
+interface WalletData { address: string; stats: WalletStats; protocols: Protocol[]; twitterMetrics: any; recentTxs: { hash: string; from: string; to: string; value: string; timeStamp: string; isContract: boolean }[]; }
+function calcScore(s: WalletStats) { let x=0; if(s.totalTx>=500)x+=25;else if(s.totalTx>=100)x+=15;else if(s.totalTx>=10)x+=8;if(s.activeMonths>=12)x+=20;else if(s.activeMonths>=6)x+=14;else if(s.activeMonths>=3)x+=8;if(s.uniqueContracts>=20)x+=20;else if(s.uniqueContracts>=10)x+=14;else if(s.uniqueContracts>=5)x+=8;if(s.totalVolEth>=10)x+=15;else if(s.totalVolEth>=1)x+=10;else if(s.totalVolEth>=0.1)x+=5;if(s.ageDays>=365)x+=12;else if(s.ageDays>=180)x+=8;else if(s.ageDays>=90)x+=4;if(s.balEth>=0.1)x+=8;else if(s.balEth>=0.01)x+=4;return Math.min(x,100); }
+function reputation(score: number) { if(score>=80)return{label:"Elite",color:"#0052FF",bg:"rgba(0,82,255,0.10)"}; if(score>=60)return{label:"Experienced",color:"#0052FF",bg:"rgba(0,82,255,0.08)"}; if(score>=40)return{label:"Active",color:"#888",bg:"rgba(255,255,255,0.05)"}; if(score>=20)return{label:"Beginner",color:"#666",bg:"rgba(255,255,255,0.03)"}; return{label:"New",color:"#555",bg:"rgba(255,255,255,0.02)"}; }
+function timeAgo(ts:string){const s=Math.floor(Date.now()/1000)-parseInt(ts);if(s<60)return s+"s";if(s<3600)return Math.floor(s/60)+"m";if(s<86400)return Math.floor(s/3600)+"h";return Math.floor(s/86400)+"d";}
+function riskLevel(score:number){if(score>=70)return{label:"Low Risk",color:"#10B981"};if(score>=40)return{label:"Medium",color:"#F59E0B"};return{label:"High Risk",color:"#EF4444"};}
 
-// ── Dashboard Mockup ──────────────────────────────────
-function DashboardMockup({ data, score }: { data?: WalletData; score?: number }) {
-  const showData = !!data;
+// ── Score Ring (Large) ────────────────────────────────
+function ScoreRing({ score, animate }: { score: number; animate: boolean }) {
+  const r=62, circ=2*Math.PI*r;
+  const rep = reputation(score);
   return (
-    <div className="bg-[#0A0A0A] border border-white/[0.06] rounded-3xl p-6 backdrop-blur-sm w-full">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-5">
-        <div>
-          <div className="text-[10px] uppercase tracking-[0.2em] text-white/40 font-medium mb-1">Wallet Score</div>
-          <div className="text-3xl font-bold tracking-[-0.03em] text-white">
-            {showData ? score : <span className="text-white/20">87</span>}
-          </div>
-        </div>
-        <div className="flex gap-2">
-          <span className="px-2.5 py-1 rounded-full text-[10px] font-semibold bg-[#0052FF]/15 text-[#0052FF] border border-[#0052FF]/20">
-            {showData ? reputation(score!).label : "Elite"}
-          </span>
-          <span className="px-2.5 py-1 rounded-full text-[10px] font-semibold bg-white/[0.03] text-white/30 border border-white/[0.04]">
-            Smart Money: <span className="text-[#0052FF]">{showData ? score : 92}</span>
-          </span>
-        </div>
+    <div className="relative">
+      <svg width="150" height="150" viewBox="0 0 150 150">
+        <circle cx="75" cy="75" r={r} fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="5" />
+        <circle cx="75" cy="75" r={r} fill="none" stroke={rep.color} strokeWidth="5"
+          strokeDasharray={circ} strokeDashoffset={animate ? (circ-(score/100)*circ) : circ}
+          strokeLinecap="round" transform="rotate(-90 75 75)"
+          style={{ transition: "stroke-dashoffset 1.2s cubic-bezier(0.16,1,0.3,1)" }} />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className="text-[44px] font-bold tracking-[-0.04em]" style={{color:rep.color}}>{score}</span>
+        <span className="text-[10px] text-white/30 font-medium mt-0.5">/ 100</span>
+      </div>
+    </div>
+  );
+}
+
+// ── Dashboard — real product look ─────────────────────
+function Dashboard({ data, score, animate }: { data?: WalletData; score?: number; animate: boolean }) {
+  const s = data ? data.stats : null;
+  const sc = score || 0;
+  const rep = reputation(sc);
+  const risk = riskLevel(sc);
+  const showData = !!data;
+
+  return (
+    <div className="bg-[#0B0B0B] border border-white/[0.06] rounded-3xl overflow-hidden backdrop-blur-sm">
+      {/* Dashboard chrome — dots */}
+      <div className="flex items-center gap-2 px-5 py-3 border-b border-white/[0.04]">
+        <Circle className="w-2.5 h-2.5 fill-[#EF4444] text-[#EF4444]" />
+        <Circle className="w-2.5 h-2.5 fill-[#F59E0B] text-[#F59E0B]" />
+        <Circle className="w-2.5 h-2.5 fill-[#10B981] text-[#10B981]" />
+        <span className="text-[10px] text-white/15 ml-3 font-medium">Basewallet Intelligence</span>
+        <span className="ml-auto text-[10px] text-white/10">{showData ? data!.address.slice(0,10)+"..."+data!.address.slice(-6) : "0x7d1e...9a2f"}</span>
       </div>
 
-      {/* KPI grid */}
-      <div className="grid grid-cols-3 gap-2 mb-5">
-        {[["Activity", showData ? data!.stats.activeMonths + " mo" : "14 mo"], ["Protocols", showData ? String(data!.stats.uniqueContracts) : "24"], ["Volume", showData ? data!.stats.totalVolEth.toFixed(1) + " ETH" : "12.4 ETH"]].map(([l, v], i) => (
-          <div key={i} className="bg-white/[0.02] border border-white/[0.03] rounded-2xl px-3 py-3">
-            <div className="text-[9px] uppercase tracking-wider text-white/30 mb-1">{l}</div>
-            <div className="text-sm font-semibold text-white">{v}</div>
+      <div className="p-6 space-y-5">
+        {/* Row 1: Score + Reputation + Smart Money + Risk */}
+        <div className="grid grid-cols-4 gap-4">
+          <div className="col-span-1 flex flex-col items-center justify-center py-2">
+            <ScoreRing score={showData ? sc : 87} animate={animate} />
+            <span className={`px-2 py-0.5 rounded-full text-[9px] font-semibold mt-2`} style={{background:rep.bg,color:rep.color}}>
+              {showData ? rep.label : "Elite"}
+            </span>
+          </div>
+          <div className="col-span-3 grid grid-cols-3 gap-3">
+            {[
+              { label: "Smart Money", value: showData ? sc : 92, max: 100, color: "#0052FF" },
+              { label: "Protocol Diversity", value: showData ? Math.min(s!.uniqueContracts*5, 100) : 85, max: 100, color: "#3B82FF" },
+              { label: "Risk Level", value: showData ? (sc>=70?85:sc>=40?55:30) : 78, max: 100, color: risk.color },
+            ].map((m, i) => (
+              <div key={i} className="bg-white/[0.02] border border-white/[0.04] rounded-2xl p-4 flex flex-col justify-between">
+                <div className="text-[9px] uppercase tracking-wider text-white/30 mb-2">{m.label}</div>
+                <div>
+                  <div className="text-xl font-bold tracking-[-0.02em] text-white mb-1">{m.value}</div>
+                  <div className="h-1 bg-white/[0.05] rounded-full overflow-hidden">
+                    <div className="h-full rounded-full" style={{width:m.value+"%",background:m.color,transition:"width 1s ease"}} />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Row 2: Stats pills */}
+        <div className="grid grid-cols-4 gap-3">
+          {[
+            ["Activity", showData ? s!.activeMonths+" mo" : "14 mo", "Active months on Base"],
+            ["Transactions", showData ? s!.totalTx.toLocaleString() : "337", "Total onchain actions"],
+            ["Volume", showData ? s!.totalVolEth.toFixed(1)+" ETH" : "12.4 ETH", "Total value transferred"],
+            ["Age", showData ? s!.ageDays+"d" : "420d", "Since first transaction"],
+          ].map(([label, val, sub], i) => (
+            <div key={i} className="bg-white/[0.02] border border-white/[0.04] rounded-2xl px-4 py-3.5">
+              <div className="text-[9px] uppercase tracking-wider text-white/25 mb-1">{label}</div>
+              <div className="text-lg font-semibold text-white tracking-[-0.02em]">{val}</div>
+              <div className="text-[9px] text-white/15 mt-0.5">{sub}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Row 3: Chart + Activity heatmap */}
+        <div className="grid grid-cols-3 gap-4">
+          <div className="col-span-2 bg-white/[0.02] border border-white/[0.04] rounded-2xl p-4">
+            <div className="text-[9px] uppercase tracking-wider text-white/25 mb-3">Activity Timeline</div>
+            <svg viewBox="0 0 300 60" className="w-full" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#0052FF" stopOpacity="0.2" />
+                  <stop offset="100%" stopColor="#0052FF" stopOpacity="0" />
+                </linearGradient>
+              </defs>
+              <polyline fill="none" stroke="#0052FF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
+                points="0,45 15,40 30,35 45,38 60,28 75,32 90,22 105,25 120,15 135,18 150,8 165,12 180,5 195,8 210,12 225,3 240,6 255,10 270,2 285,5 300,0"
+                opacity={showData ? 1 : 0.4} />
+              <polygon fill="url(#chartGrad)"
+                points="0,45 15,40 30,35 45,38 60,28 75,32 90,22 105,25 120,15 135,18 150,8 165,12 180,5 195,8 210,12 225,3 240,6 255,10 270,2 285,5 300,0 300,60 0,60"
+                opacity={showData ? 0.6 : 0.2} />
+            </svg>
+            {/* Heatmap row */}
+            <div className="flex gap-1 mt-3">
+              {Array.from({length:28}).map((_, i) => (
+                <div key={i} className="h-3 flex-1 rounded-sm" style={{background:`rgba(0,82,255,${0.05+Math.random()*0.2})`}} title={`Day ${28-i}`} />
+              ))}
+            </div>
+            <div className="flex justify-between text-[8px] text-white/15 mt-1.5">
+              <span>28 days ago</span>
+              <span>Today</span>
+            </div>
+          </div>
+
+          {/* AI Summary + Protocols */}
+          <div className="bg-white/[0.02] border border-white/[0.04] rounded-2xl p-4 flex flex-col gap-3">
+            <div className="flex items-center gap-1.5">
+              <Sparkles className="w-3 h-3 text-[#0052FF]" />
+              <span className="text-[9px] uppercase tracking-wider text-white/25">AI Analysis</span>
+            </div>
+            <p className="text-[10px] text-white/35 leading-relaxed flex-1">
+              {showData
+                ? `${rep.label}-level wallet with ${s!.totalTx.toLocaleString()} transactions across ${s!.uniqueContracts} protocols. ${s!.totalVolEth.toFixed(1)} ETH volume. ${sc>=60?"Demonstrates sophisticated DeFi engagement patterns.":"Building consistent onchain presence."}`
+                : "Elite-level wallet. 337 transactions across 24 protocols. 12.4 ETH volume. Demonstrates sophisticated DeFi engagement patterns."}
+            </p>
+            <div className="border-t border-white/[0.04] pt-3">
+              <div className="text-[9px] uppercase tracking-wider text-white/25 mb-2">Top Protocols</div>
+              <div className="space-y-1">
+                {(showData ? data!.protocols.slice(0,4).map(p=>[p.name,p.txCount] as [string,number]) : [["Aerodrome",56],["Uniswap V3",34],["Morpho",21],["Aave V3",18]] as [string,number][]).map(([n,c],i)=>(
+                  <div key={i} className="flex justify-between text-[10px]">
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-3.5 h-3.5 rounded-sm bg-[#0052FF]/15 flex items-center justify-center text-[6px] font-bold text-[#0052FF]">{n[0]}</div>
+                      <span className="text-white/45">{n}</span>
+                    </div>
+                    <span className="text-white/20 tabular-nums">{c}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Trust Logos ────────────────────────────────────────
+function TrustSection() {
+  const logos = [
+    { name: "Base", letter: "B" },
+    { name: "Coinbase", letter: "C" },
+    { name: "Aerodrome", letter: "A" },
+    { name: "Uniswap", letter: "U" },
+    { name: "Morpho", letter: "M" },
+  ];
+  return (
+    <div className="w-full">
+      <div className="grid grid-cols-3 gap-4 mb-10 max-w-[600px] mx-auto">
+        {[["10M+","Wallets Analyzed"],["250M+","Transactions Indexed"],["300+","Base Protocols"]].map(([v,l],i)=>(
+          <div key={i} className="text-center">
+            <div className="text-xl font-bold text-white tracking-[-0.02em]">{v}</div>
+            <div className="text-[10px] text-white/25 uppercase tracking-wider mt-1">{l}</div>
           </div>
         ))}
       </div>
-
-      {/* Sparkline + Summary */}
-      <div className="grid grid-cols-2 gap-3 mb-5">
-        <div className="bg-white/[0.02] border border-white/[0.03] rounded-2xl p-3">
-          <div className="text-[9px] uppercase tracking-wider text-white/30 mb-2">Activity</div>
-          <svg viewBox="0 0 100 30" className="w-full" preserveAspectRatio="none">
-            <polyline fill="none" stroke="#0052FF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
-              points="0,28 8,25 16,18 24,22 32,14 40,16 48,8 56,12 64,4 72,6 80,10 88,2 96,5 100,0"
-              opacity={showData ? 1 : 0.3} />
-            <polyline fill="url(#grad)" stroke="none"
-              points="0,28 8,25 16,18 24,22 32,14 40,16 48,8 56,12 64,4 72,6 80,10 88,2 96,5 100,0 100,30 0,30"
-              opacity={showData ? 0.15 : 0.05} />
-            <defs>
-              <linearGradient id="grad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#0052FF" />
-                <stop offset="100%" stopColor="#0052FF" stopOpacity="0" />
-              </linearGradient>
-            </defs>
-          </svg>
-        </div>
-        <div className="bg-white/[0.02] border border-white/[0.03] rounded-2xl p-3">
-          <div className="flex items-center gap-1.5 mb-2">
-            <Sparkles className="w-3 h-3 text-[#0052FF]" />
-            <span className="text-[9px] uppercase tracking-wider text-white/30">AI Summary</span>
+      <div className="flex items-center justify-center gap-8 opacity-15">
+        {logos.map((l, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded bg-white/10 flex items-center justify-center text-[10px] font-bold text-white/80">{l.letter}</div>
+            <span className="text-[11px] text-white/50 font-medium">{l.name}</span>
           </div>
-          <p className="text-[10px] text-white/40 leading-relaxed">
-            {showData
-              ? `${reputation(score!).label}-level wallet. ${data!.stats.totalTx} txs across ${data!.stats.uniqueContracts} protocols. ${data!.stats.totalVolEth.toFixed(1)} ETH volume.`
-              : "Elite-level wallet. 337 txs across 24 protocols. 12.4 ETH volume. Strong DeFi experience."}
-          </p>
-        </div>
-      </div>
-
-      {/* Protocols */}
-      <div className="mb-5">
-        <div className="text-[9px] uppercase tracking-wider text-white/30 mb-2">Top Protocols</div>
-        <div className="space-y-1.5">
-          {(showData
-            ? data!.protocols.slice(0, 4).map(p => [p.name, p.txCount] as [string, number])
-            : [["Aerodrome", 56], ["Uniswap V3", 34], ["Morpho", 21], ["Aave V3", 18]] as [string, number][]
-          ).map(([name, count], i) => (
-            <div key={i} className="flex items-center justify-between text-[11px]">
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded bg-[#0052FF]/15 flex items-center justify-center text-[7px] font-bold text-[#0052FF]">{name[0]}</div>
-                <span className="text-white/60">{name}</span>
-              </div>
-              <span className="text-white/30 tabular-nums">{count}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Recent Txs */}
-      <div>
-        <div className="text-[9px] uppercase tracking-wider text-white/30 mb-2">Recent Activity</div>
-        <div className="space-y-1">
-          {(showData
-            ? data!.recentTxs.slice(0, 3).map(tx => ({ hash: tx.hash.slice(0, 10) + "...", isOut: tx.from?.toLowerCase() === data!.address, isContract: tx.isContract, value: tx.value }))
-            : [{ hash: "0xa1b2c3...", isOut: true, isContract: false, value: "0.035" }, { hash: "0xd4e5f6...", isOut: true, isContract: true, value: "0.000" }, { hash: "0xg7h8i9...", isOut: false, isContract: false, value: "0.002" }]
-          ).map((tx, i) => (
-            <div key={i} className="flex items-center gap-2 text-[10px]">
-              <span className="font-mono text-white/40">{tx.hash}</span>
-              <span className="px-1.5 py-0.5 rounded text-[8px] font-semibold"
-                style={{ background: tx.isContract ? "rgba(0,82,255,0.1)" : tx.isOut ? "rgba(255,255,255,0.05)" : "rgba(34,197,94,0.1)", color: tx.isContract ? "#0052FF" : tx.isOut ? "#ffffff80" : "#22C55E" }}>
-                {tx.isContract ? "Contract" : tx.isOut ? "Sent" : "Received"}
-              </span>
-              <span className="text-white/30 ml-auto">{tx.value} ETH</span>
-            </div>
-          ))}
-        </div>
+        ))}
       </div>
     </div>
   );
@@ -203,14 +236,17 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [data, setData] = useState<WalletData | null>(null);
-  const [page, setPage] = useState<"wallet" | "trending" | "leaderboard">("wallet");
+  const [animate, setAnimate] = useState(false);
+  const [page, setPage] = useState<"wallet"|"trending"|"leaderboard">("wallet");
+
+  useEffect(() => { if (data) setTimeout(()=>setAnimate(true), 400); }, [data]);
 
   async function analyze() {
     const raw = input.trim();
     if (!raw) return setError("Enter a wallet address");
     const isAddr = raw.startsWith("0x") && raw.length === 42;
     if (!isAddr && !raw.includes(".")) return setError("Enter 0x... or name.base.eth");
-    setLoading(true); setError("");
+    setLoading(true); setError(""); setData(null); setAnimate(false);
     let addr = raw.toLowerCase();
     if (!isAddr) {
       try {
@@ -232,22 +268,25 @@ export default function Home() {
   const score = data ? calcScore(data.stats) : 0;
 
   return (
-    <div className="min-h-screen bg-black text-white">
-      <ParticleField />
+    <div className="min-h-screen bg-[#050505] text-white">
+      <NetworkBackground />
 
       {/* ── Nav ──────────────────────────────────────── */}
-      <nav className="sticky top-0 z-50 bg-black/80 backdrop-blur-xl border-b border-white/[0.06]">
+      <nav className="sticky top-0 z-50 bg-[#050505]/85 backdrop-blur-xl border-b border-white/[0.05]">
         <div className="max-w-[1400px] mx-auto px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-[#0052FF] rounded-lg flex items-center justify-center">
-              <span className="text-white text-[12px] font-bold">B</span>
+              <span className="text-white text-xs font-bold">B</span>
             </div>
             <span className="text-sm font-semibold tracking-tight">Basewallet</span>
           </div>
           <div className="flex items-center gap-10 text-[13px] font-medium">
-            <button onClick={() => setPage("wallet")} className={page === "wallet" ? "text-white" : "text-white/50 hover:text-white/80 transition-colors cursor-pointer"}>Wallet</button>
-            <button onClick={() => setPage("trending")} className={page === "trending" ? "text-white" : "text-white/50 hover:text-white/80 transition-colors cursor-pointer"}>Trending</button>
-            <button onClick={() => setPage("leaderboard")} className={page === "leaderboard" ? "text-white" : "text-white/50 hover:text-white/80 transition-colors cursor-pointer"}>Leaderboard</button>
+            {(["wallet","trending","leaderboard"] as const).map(t => (
+              <button key={t} onClick={() => setPage(t)}
+                className={`capitalize transition-colors ${page === t ? "text-white" : "text-white/40 hover:text-white/70"}`}>
+                {t}
+              </button>
+            ))}
           </div>
           <button className="bg-white text-black text-xs font-semibold px-4 py-2 rounded-full hover:bg-gray-200 transition-colors">
             Connect Wallet
@@ -255,136 +294,104 @@ export default function Home() {
         </div>
       </nav>
 
-      {/* ── Hero + Dashboard ──────────────────────────── */}
+      {/* ── Page Content ──────────────────────────────── */}
       {page === "wallet" ? (
-      <section className="relative px-8 pt-20 pb-12">
-        <div className="max-w-[1400px] mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center">
-            {/* Left — Typography + CTA */}
-            <div>
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-                className="inline-flex items-center gap-2 text-[10px] font-semibold text-white/40 uppercase tracking-[0.25em] mb-8"
-              >
-                <div className="w-6 h-px bg-[#0052FF]/50" />
-                The Reputation Layer for Base
-              </motion.div>
-
-              <motion.h1
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1, duration: 0.7, ease: "easeOut" }}
-                className="text-[72px] sm:text-[100px] lg:text-[128px] font-extrabold tracking-[-0.04em] leading-[0.9] mb-6"
-              >
-                Understand<br />
-                <span className="text-[#0052FF]">any wallet</span>
-              </motion.h1>
-
-              <motion.p
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.25, duration: 0.5 }}
-                className="text-[16px] text-white/50 leading-relaxed max-w-[460px] mb-10"
-              >
-                Analyze wallets, discover smart money, track on-chain reputation and uncover the stories behind every address on Base.
-              </motion.p>
-
-              {/* CTA */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.35, duration: 0.5 }}
-                className="flex flex-col sm:flex-row gap-3 mb-12"
-              >
-                <div className="flex-1 max-w-[480px] bg-white/[0.03] border border-white/[0.08] rounded-2xl flex items-center gap-0 p-1.5 hover:border-white/[0.15] transition-colors">
-                  <Search className="w-4 h-4 text-white/20 ml-3 flex-shrink-0" />
-                  <input
-                    className="flex-1 bg-transparent px-2 py-3 text-[14px] outline-none placeholder:text-white/20 text-white"
-                    placeholder="0x... or name.base.eth"
-                    value={input} onChange={e => setInput(e.target.value)}
-                    onKeyDown={e => e.key === "Enter" && analyze()}
-                  />
-                  <button
-                    className="bg-[#0052FF] text-white text-[13px] font-semibold px-5 py-2.5 rounded-xl hover:bg-[#0045DD] transition-colors disabled:opacity-50 flex items-center gap-1.5 flex-shrink-0"
-                    onClick={analyze} disabled={loading}
-                  >
-                    {loading ? "…" : <><span>Analyze</span><ArrowRight className="w-3.5 h-3.5" /></>}
-                  </button>
-                </div>
-                <button className="text-[13px] font-medium text-white/40 hover:text-white/70 transition-colors flex items-center gap-1.5 px-2">
-                  View Leaderboard <ArrowRight className="w-3.5 h-3.5" />
-                </button>
-              </motion.div>
-              {error && <div className="text-[13px] text-red-400 font-medium -mt-8 mb-4">{error}</div>}
-
-              {/* Already analyzed? Show mini result line */}
-              {data && (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }} className="flex items-center gap-3 text-[13px] text-white/30">
-                  <span className="text-white/50 font-mono">{data.address.slice(0, 10)}...{data.address.slice(-6)}</span>
-                  <span className="text-white/20">·</span>
-                  <span>Score <span className="text-[#0052FF] font-semibold">{score}</span></span>
-                  <span className="text-white/20">·</span>
-                  <span>{data.stats.totalTx.toLocaleString()} txs</span>
-                </motion.div>
-              )}
+        <>
+          {/* Summary bar above hero */}
+          <div className="border-b border-white/[0.04] bg-white/[0.01]">
+            <div className="max-w-[1400px] mx-auto px-8 py-2.5 flex items-center gap-6 text-[10px] text-white/25">
+              <span>Base Mainnet</span>
+              <span className="text-white/10">·</span>
+              <span>Block height: 45,231,882</span>
+              <span className="text-white/10">·</span>
+              <span>Gas: 0.001 Gwei</span>
+              <span className="text-white/10">·</span>
+              <span className="text-[#10B981]">● Live</span>
             </div>
-
-            {/* Right — Floating Dashboard */}
-            <motion.div
-              initial={{ opacity: 0, y: 40, scale: 0.96 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{ delay: 0.3, duration: 0.8, ease: "easeOut" }}
-              className="relative"
-            >
-              {/* Glow behind dashboard */}
-              <div className="absolute -inset-10 bg-[#0052FF]/10 blur-[80px] rounded-full" />
-              <div className="relative">
-                <DashboardMockup data={data || undefined} score={data ? score : 87} />
-              </div>
-            </motion.div>
           </div>
-        </div>
-      </section>
+
+          {/* Hero */}
+          <section className="relative px-8 pt-14 pb-8">
+            <div className="max-w-[1400px] mx-auto">
+              <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.3fr] gap-12 lg:gap-16 items-center">
+                {/* Left */}
+                <div>
+                  <motion.div initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} transition={{duration:0.5}}
+                    className="inline-flex items-center gap-2 text-[10px] font-semibold text-white/30 uppercase tracking-[0.25em] mb-6">
+                    <div className="w-6 h-px bg-[#0052FF]/40" />
+                    The Reputation Layer for Base
+                  </motion.div>
+
+                  <motion.h1 initial={{opacity:0,y:24}} animate={{opacity:1,y:0}} transition={{delay:0.1,duration:0.6}}
+                    className="text-[62px] sm:text-[80px] lg:text-[100px] font-extrabold tracking-[-0.04em] leading-[0.92] mb-5">
+                    Understand<br />
+                    <span className="text-[#0052FF]">any wallet</span>
+                  </motion.h1>
+
+                  <motion.p initial={{opacity:0,y:16}} animate={{opacity:1,y:0}} transition={{delay:0.2,duration:0.5}}
+                    className="text-[15px] text-white/40 leading-relaxed max-w-[420px] mb-8">
+                    Analyze wallets, discover smart money, and track on-chain reputation across the Base ecosystem.
+                  </motion.p>
+
+                  <motion.div initial={{opacity:0,y:12}} animate={{opacity:1,y:0}} transition={{delay:0.3,duration:0.5}}
+                    className="flex flex-col sm:flex-row gap-3 mb-8">
+                    <div className="flex-1 bg-white/[0.03] border border-white/[0.08] rounded-2xl flex items-center p-1.5 hover:border-white/[0.12] transition-colors">
+                      <Search className="w-4 h-4 text-white/15 ml-3 flex-shrink-0" />
+                      <input className="flex-1 bg-transparent px-2 py-3 text-[14px] outline-none placeholder:text-white/15 text-white"
+                        placeholder="Analyze any Base address, ENS or basename"
+                        value={input} onChange={e=>setInput(e.target.value)}
+                        onKeyDown={e=>e.key==="Enter"&&analyze()} />
+                      <button className="bg-white text-black text-[13px] font-semibold px-5 py-2.5 rounded-xl hover:bg-gray-200 transition-colors disabled:opacity-50 flex items-center gap-1.5 flex-shrink-0"
+                        onClick={analyze} disabled={loading}>
+                        {loading ? "…" : <><span>Analyze Wallet</span><ArrowRight className="w-3.5 h-3.5" /></>}
+                      </button>
+                    </div>
+                  </motion.div>
+                  {error && <div className="text-[13px] text-red-400 font-medium -mt-4 mb-4">{error}</div>}
+                </div>
+
+                {/* Right — Dashboard (the main element) */}
+                <motion.div initial={{opacity:0,y:30,scale:0.97}} animate={{opacity:1,y:0,scale:1}} transition={{delay:0.3,duration:0.8,ease:"easeOut"}} className="relative">
+                  <div className="absolute -inset-12 bg-[#0052FF]/5 blur-[100px] rounded-full" />
+                  <div className="relative">
+                    <Dashboard data={data||undefined} score={data?score:87} animate={animate} />
+                  </div>
+                </motion.div>
+              </div>
+            </div>
+          </section>
+
+          {/* Trust Section */}
+          <section className="px-8 pb-20">
+            <div className="max-w-[1400px] mx-auto">
+              <TrustSection />
+            </div>
+          </section>
+        </>
       ) : (
         <section className="relative px-8 pt-32 pb-24 flex items-center justify-center min-h-[60vh]">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="text-center"
-          >
-            <div className="w-16 h-16 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center mx-auto mb-6">
-              {page === "trending" ? <TrendingUp className="w-7 h-7 text-[#0052FF]/50" /> : <Zap className="w-7 h-7 text-[#0052FF]/50" />}
+          <motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} transition={{duration:0.5}} className="text-center">
+            <div className="w-16 h-16 rounded-2xl bg-white/[0.02] border border-white/[0.05] flex items-center justify-center mx-auto mb-6">
+              {page==="trending" ? <TrendingUp className="w-7 h-7 text-[#0052FF]/40" /> : <Zap className="w-7 h-7 text-[#0052FF]/40" />}
             </div>
-            <h2 className="text-2xl font-bold text-white mb-3">
-              {page === "trending" ? "Trending Wallets" : "Leaderboard"}
-            </h2>
-            <p className="text-white/40 text-sm max-w-[340px] mx-auto mb-8">
-              {page === "trending"
-                ? "Top wallets by ROI, profit, and activity. Discover what smart money is doing on Base."
-                : "Compare wallet reputations. See who ranks highest across the Base ecosystem."}
+            <h2 className="text-2xl font-bold text-white mb-3">{page==="trending"?"Trending Wallets":"Leaderboard"}</h2>
+            <p className="text-white/30 text-sm max-w-[340px] mx-auto mb-8">
+              {page==="trending" ? "Top wallets by ROI, profit, and activity on Base." : "Compare wallet reputations across the ecosystem."}
             </p>
-            <button
-              onClick={() => setPage("wallet")}
-              className="text-[13px] font-medium text-[#0052FF] hover:text-[#3B82FF] transition-colors inline-flex items-center gap-1.5"
-            >
-              <ArrowRight className="w-3.5 h-3.5 rotate-180" /> Back to Wallet Analyzer
+            <button onClick={()=>setPage("wallet")} className="text-[13px] font-medium text-[#0052FF] hover:text-[#3B82FF] transition-colors inline-flex items-center gap-1.5">
+              <ArrowRight className="w-3.5 h-3.5 rotate-180" /> Back to Analyzer
             </button>
-            <div className="mt-8 px-4 py-2 rounded-full bg-[#0052FF]/10 border border-[#0052FF]/20 text-[11px] text-[#0052FF]/70 font-medium inline-block">
-              Coming soon
-            </div>
+            <div className="mt-8 px-4 py-2 rounded-full bg-[#0052FF]/8 border border-[#0052FF]/15 text-[11px] text-[#0052FF]/60 font-medium inline-block">Coming soon</div>
           </motion.div>
         </section>
       )}
 
       {/* ── Footer ────────────────────────────────────── */}
       <footer className="border-t border-white/[0.04] py-6 px-8">
-        <div className="max-w-[1400px] mx-auto flex items-center justify-between text-[12px] text-white/20">
+        <div className="max-w-[1400px] mx-auto flex items-center justify-between text-[11px] text-white/15">
           <div className="flex items-center gap-2">
-            <div className="w-5 h-5 bg-white/[0.05] rounded flex items-center justify-center">
-              <span className="text-[8px] font-bold text-white/30">B</span>
+            <div className="w-5 h-5 bg-white/[0.03] rounded flex items-center justify-center">
+              <span className="text-[7px] font-bold text-white/20">B</span>
             </div>
             Basewallet
           </div>
