@@ -203,6 +203,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [data, setData] = useState<WalletData | null>(null);
+  const [page, setPage] = useState<"wallet" | "trending" | "leaderboard">("wallet");
 
   async function analyze() {
     const raw = input.trim();
@@ -244,9 +245,9 @@ export default function Home() {
             <span className="text-sm font-semibold tracking-tight">Basewallet</span>
           </div>
           <div className="flex items-center gap-10 text-[13px] font-medium">
-            <span className="text-white">Wallet</span>
-            <span className="text-white/50 hover:text-white/80 transition-colors cursor-pointer">Trending</span>
-            <span className="text-white/50 hover:text-white/80 transition-colors cursor-pointer">Leaderboard</span>
+            <button onClick={() => setPage("wallet")} className={page === "wallet" ? "text-white" : "text-white/50 hover:text-white/80 transition-colors cursor-pointer"}>Wallet</button>
+            <button onClick={() => setPage("trending")} className={page === "trending" ? "text-white" : "text-white/50 hover:text-white/80 transition-colors cursor-pointer"}>Trending</button>
+            <button onClick={() => setPage("leaderboard")} className={page === "leaderboard" ? "text-white" : "text-white/50 hover:text-white/80 transition-colors cursor-pointer"}>Leaderboard</button>
           </div>
           <button className="bg-white text-black text-xs font-semibold px-4 py-2 rounded-full hover:bg-gray-200 transition-colors">
             Connect Wallet
@@ -255,6 +256,7 @@ export default function Home() {
       </nav>
 
       {/* ── Hero + Dashboard ──────────────────────────── */}
+      {page === "wallet" ? (
       <section className="relative px-8 pt-20 pb-12">
         <div className="max-w-[1400px] mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center">
@@ -345,6 +347,37 @@ export default function Home() {
           </div>
         </div>
       </section>
+      ) : (
+        <section className="relative px-8 pt-32 pb-24 flex items-center justify-center min-h-[60vh]">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="text-center"
+          >
+            <div className="w-16 h-16 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center mx-auto mb-6">
+              {page === "trending" ? <TrendingUp className="w-7 h-7 text-[#0052FF]/50" /> : <Zap className="w-7 h-7 text-[#0052FF]/50" />}
+            </div>
+            <h2 className="text-2xl font-bold text-white mb-3">
+              {page === "trending" ? "Trending Wallets" : "Leaderboard"}
+            </h2>
+            <p className="text-white/40 text-sm max-w-[340px] mx-auto mb-8">
+              {page === "trending"
+                ? "Top wallets by ROI, profit, and activity. Discover what smart money is doing on Base."
+                : "Compare wallet reputations. See who ranks highest across the Base ecosystem."}
+            </p>
+            <button
+              onClick={() => setPage("wallet")}
+              className="text-[13px] font-medium text-[#0052FF] hover:text-[#3B82FF] transition-colors inline-flex items-center gap-1.5"
+            >
+              <ArrowRight className="w-3.5 h-3.5 rotate-180" /> Back to Wallet Analyzer
+            </button>
+            <div className="mt-8 px-4 py-2 rounded-full bg-[#0052FF]/10 border border-[#0052FF]/20 text-[11px] text-[#0052FF]/70 font-medium inline-block">
+              Coming soon
+            </div>
+          </motion.div>
+        </section>
+      )}
 
       {/* ── Footer ────────────────────────────────────── */}
       <footer className="border-t border-white/[0.04] py-6 px-8">
