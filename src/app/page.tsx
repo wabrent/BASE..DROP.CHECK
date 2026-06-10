@@ -423,6 +423,64 @@ export default function Home() {
             </div>
           </section>
 
+          {/* Base Verify Section */}
+          <section className="px-8 pb-12">
+            <div className="max-w-[1400px] mx-auto">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5 }}
+                className="bg-[#0B0B0B] border border-white/[0.06] rounded-3xl p-8"
+              >
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <Shield className="w-4 h-4 text-[#0052FF]" />
+                      <span className="text-[11px] font-semibold text-white/50 uppercase tracking-[0.15em]">Base Verify</span>
+                      <span className="px-2 py-0.5 rounded-full text-[9px] font-semibold bg-[#0052FF]/10 text-[#0052FF] border border-[#0052FF]/20">New</span>
+                    </div>
+                    <p className="text-sm text-white/35">Verify your social accounts to boost reputation and unlock anti-Sybil protection</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {(["x","coinbase","instagram","tiktok"] as const).map((provider) => {
+                    const p = ({
+                      x: { name: "X / Twitter", icon: "𝕏", desc: "Verify account & followers" },
+                      coinbase: { name: "Coinbase", icon: "C", desc: "Coinbase One status" },
+                      instagram: { name: "Instagram", icon: "IG", desc: "Account & followers" },
+                      tiktok: { name: "TikTok", icon: "TT", desc: "Followers & engagement" },
+                    })[provider];
+                    return (
+                      <div key={provider}
+                        className="bg-white/[0.02] border border-white/[0.04] hover:border-[#0052FF]/30 rounded-2xl p-4 text-center cursor-pointer transition-all group">
+                        <div className="w-10 h-10 rounded-xl bg-[#0052FF]/10 flex items-center justify-center mx-auto mb-3 text-sm font-bold text-[#0052FF] group-hover:scale-110 transition-transform">
+                          {p.icon}
+                        </div>
+                        <div className="text-[13px] font-semibold text-white mb-1">{p.name}</div>
+                        <div className="text-[10px] text-white/25">{p.desc}</div>
+                        <div className="mt-3 pt-3 border-t border-white/[0.04]">
+                          <span className="text-[10px] font-medium text-[#0052FF]/60 group-hover:text-[#0052FF] transition-colors">
+                            Connect to verify →
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="mt-6 pt-5 border-t border-white/[0.04] flex items-center gap-4 text-[10px] text-white/20">
+                  <span>🛡️ Anti-Sybil: one account = one wallet</span>
+                  <span className="text-white/10">·</span>
+                  <span>🔐 Privacy-first: no credentials shared</span>
+                  <span className="text-white/10">·</span>
+                  <span>✅ Boosts reputation score by up to 25 pts</span>
+                </div>
+              </motion.div>
+            </div>
+          </section>
+
           {/* Trust Section */}
           <section className="px-8 pb-20">
             <div className="max-w-[1400px] mx-auto">
